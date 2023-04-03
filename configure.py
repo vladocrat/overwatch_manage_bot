@@ -1,5 +1,6 @@
 import configparser
 
+#TODO add another class config and move prefix and token there
 class Configurer:
     def __init__(self, file_path):
         self.prefix = None

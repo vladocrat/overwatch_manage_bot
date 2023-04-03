@@ -22,8 +22,10 @@ def run():
     @_bot.command("mixes")
     async def mixes(ctx):
         view = MixesView()
-        message = "Mixes are scheduled to..."
-        await ctx.send(message, view=view)
+        message = "A new mix has been scheduled to..."
+        title = "MIX"
+        embed = discord.Embed(title=title, description=message)
+        await ctx.send(view=view, embed=embed)
         await view.wait()
 
     _bot.run(config.token)

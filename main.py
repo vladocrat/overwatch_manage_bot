@@ -1,7 +1,9 @@
+import asyncio
+
 import discord
-from discord.ext import commands
-from discord.ext.commands import bot
+from discord.ext import commands, tasks
 from configure import Configurer
+from utils import channel_id, channel
 from views import MixesView
 
 
@@ -27,6 +29,8 @@ def run():
         embed = discord.Embed(title=title, description=message)
         await ctx.send(view=view, embed=embed)
         await view.wait()
+        await asyncio.sleep(1)
+        await ctx.author.send("hi this is your channel id: " + str(ctx.author.id))
 
     _bot.run(config.token)
 

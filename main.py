@@ -1,10 +1,21 @@
 import asyncio
+import encodings
 
 import discord
-from discord.ext import commands, tasks
+import json
+
+from PyQt5.QtCore import QByteArray, QDataStream
+from PyQt5.QtNetwork import QHostAddress, QAbstractSocket
+
+from protocol import Protocol
+from server import PendingConnection
+from discord.ext import commands
 from configure import Configurer
-from utils import channel_id, channel
 from views import MixesView
+
+
+def p():
+    print("data received")
 
 
 def run():
@@ -16,6 +27,22 @@ def run():
 
     client = discord.Client(intents=intents)
     _bot = commands.Bot(command_prefix=config.prefix, client=client, intents=client.intents)
+
+    sclient = PendingConnection()
+    sclient.socket.connectToHost(QHostAddress('127.0.0.1'), 8082)
+
+    if not sclient.socket.waitForConnected(1000):
+        raise Exception('failed to connect')
+
+    sclient.socket.readyRead.connect(p)
+    msg = QByteArray()
+    msg.append("Hello")
+
+    if not sclient.send(command=Protocol.Bot.hello.value, data=msg):
+        print("failed to send data")
+
+    # server = Server(QHostAddress('127.0.0.1'), 8083)
+    # server.listen()
 
     @_bot.event
     async def on_ready():

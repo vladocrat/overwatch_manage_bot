@@ -8,4 +8,3 @@ class MixesView(discord.ui.View):
     async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("msg")
         self.stop()
-

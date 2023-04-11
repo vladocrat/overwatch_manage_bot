@@ -2,12 +2,13 @@ import asyncio
 
 import discord
 
-from PyQt5.QtCore import QByteArray
+from PyQt5.QtCore import QByteArray, QTextStream, QDataStream, QIODevice
 
 from protocol import Protocol
 from server import ClientConnection
 from discord.ext import commands
 from configure import Configurer, Config
+from utils import Utils
 from views import MixesView
 
 
@@ -26,7 +27,11 @@ def run():
     client_connection.connect_to_host(port=network_config.port)
 
     msg = QByteArray()
-    msg.append("Hello")
+    stream = QDataStream(msg, QIODevice.WriteOnly)
+    text = "hello"
+    stream.setByteOrder(QDataStream.BigEndian)
+    stream.writeQString(text)
+    stream.writeInt32(20)
 
     if not client_connection.send(command=Protocol.Bot.hello.value, data=msg):
         print("failed to send data")

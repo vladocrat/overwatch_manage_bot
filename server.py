@@ -1,8 +1,10 @@
 import struct
 import sys
 
-from PyQt5.QtCore import QByteArray, QDataStream, QObject, pyqtSignal, QVariant, pyqtSlot
+from PyQt5.QtCore import QByteArray, QDataStream, QObject, pyqtSignal, QVariant, pyqtSlot, QIODevice
 from PyQt5.QtNetwork import QTcpSocket, QAbstractSocket, QTcpServer, QHostAddress
+
+from utils import Utils
 
 
 class Connection(QObject):
@@ -30,15 +32,20 @@ class Connection(QObject):
     def send_command(self, command):
         return False
 
-    def send(self, command, data):
+    def send(self, command, data: QByteArray):
         if not self.check_connection():
             print('socket is not connected')
             return False
 
         msg = QByteArray()
-        command32 = struct.pack(">I", command)
-        msg.append(command32)
-        msg.append(data)
+        msg_stream = QDataStream(msg, QIODevice.WriteOnly)
+        msg_stream.setByteOrder(QDataStream.BigEndian)
+        msg_stream.writeUInt32(command)
+        msg_stream << data
+
+        print("Message size: " + str(msg.size()))
+        print("Message: " + str(msg))
+
         stream = QDataStream(self.socket)
         stream.writeUInt32(msg.size())
         stream.writeBytes(msg)

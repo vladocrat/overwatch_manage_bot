@@ -34,4 +34,4 @@ class Configurer:
                              self.config["Bot"]["prefix"])
         elif cfg_type == Config.Network:
             return NetworkConfig(self.config["Network"]["address"],
-                                 self.config["Network"]["port"])
+                                 int(self.config["Network"]["port"]))

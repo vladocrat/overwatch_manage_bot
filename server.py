@@ -1,18 +1,24 @@
 import struct
 import sys
 
-import PyQt5
-from PyQt5 import QtCore
-from PyQt5.QtCore import QByteArray, QDataStream
-from PyQt5.QtNetwork import QTcpSocket, QAbstractSocket, QTcpServer
+from PyQt5.QtCore import QByteArray, QDataStream, QObject, pyqtSignal, QVariant, pyqtSlot
+from PyQt5.QtNetwork import QTcpSocket, QAbstractSocket, QTcpServer, QHostAddress
 
 
-class Connection:
+class Connection(QObject):
     socket: QTcpSocket
     package_size = -1
 
     def __init__(self):
+        super().__init__()
         self.socket = QTcpSocket()
+        self.socket.setSocketOption(QTcpSocket.KeepAliveOption, QVariant(1))
+
+    def connect_to_host(self, address: QHostAddress = QHostAddress.LocalHost, port: int = 8080):
+        self.socket.connectToHost(address, port)
+
+        if not self.socket.waitForConnected(1000):
+            raise Exception('failed to connect')
 
     def check_connection(self):
         if self.socket.state() != QTcpSocket.ConnectedState:
@@ -20,6 +26,7 @@ class Connection:
             return False
         return True
 
+    # TODO implement
     def send_command(self, command):
         return False
 
@@ -46,68 +53,58 @@ class Connection:
 
         return True
 
-    def read_data(self, data: QByteArray):
+    def read_sent_data(self):
         if self.socket.bytesAvailable() >= sys.getsizeof(int) and self.package_size == -1:
             buffer = QDataStream(self.socket)
-            self.package_size = buffer.readInt()
+            self.package_size = buffer.readUInt32()
 
         if self.socket.bytesAvailable() < self.package_size:
             return
 
         buffer = QDataStream(self.socket)
-        data = buffer.readBytes()
+        data = QByteArray()
+        buffer >> data
         self.package_size = -1
-
-    def read_command(self, buffer: QDataStream):
-        return buffer.readInt()
+        return data
 
 
-class PendingConnection(Connection):
-
+class ClientConnection(Connection):
     def __init__(self):
         super().__init__()
         self.socket.readyRead.connect(self.handle_data)
+        self.socket.errorOccurred.connect(lambda: print(self.socket.errorString()))
+        self.socket.connected.connect(lambda: print("connected to socket"))
+        self.socket.disconnected.connect(self.__on_disconnected)
+
+    def handle_data(self):
+        msg = self.__read_message()
+        print('message command: ' + str(msg.command))
+
+    def __on_disconnected(self):
+        print("server disconnected")
+
+    def __read_message(self):
+        sent_data = self.read_sent_data()
+        sent_data_stream = QDataStream(sent_data)
+        msg = self.Message()
+        data = self.__get_data(sent_data_stream)
+        stream = QDataStream(data)
+        msg.read_command(stream)
+
+        return msg
+
+    def __get_data(self, stream: QDataStream) -> QByteArray:
+        length = stream.readUInt32()
+        return QByteArray(stream.readRawData(length))
 
     class Message:
         command: int
         payload: QByteArray
 
-    def __read_message(self):
-        data = QByteArray()
-        super().read_data(data)
-        stream = QDataStream(data)
-        msg = self.Message()
-        msg.command = self.read_command(stream)
-        return msg
+        def __init__(self):
+            self.command = 0
+            self.payload = QByteArray()
 
-    def handle_data(self):
-        msg = self.__read_message()
-        print(msg)
+        def read_command(self, stream: QDataStream):
+            self.command = stream.readUInt32()
 
-
-class UserConnection(Connection):
-    def do(self):
-        return False
-
-
-# class Server(QTcpServer):
-#     address = ""
-#     port = 0
-#     connection: Connection
-#     pending_connections = []
-#     user_connections = []
-#
-#     def __init__(self, address, port):
-#         super().__init__()
-#         self.address = address
-#         self.port = port
-#
-#     def listen(self):
-#         if not super().listen(self.address, self.port):
-#             print('failed to listen on: ' + str(self))
-#         print('listening on: ' + str(self))
-#
-#     def incomingConnection(self, handle: PyQt5.sip.voidptr) -> None:
-#         connection = PendingConnection()
-#         self.pending_connections.append(connection)
-#         return

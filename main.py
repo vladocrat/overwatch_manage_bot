@@ -8,14 +8,10 @@ from PyQt5.QtCore import QByteArray, QDataStream
 from PyQt5.QtNetwork import QHostAddress, QAbstractSocket
 
 from protocol import Protocol
-from server import PendingConnection
+from server import ClientConnection
 from discord.ext import commands
 from configure import Configurer
 from views import MixesView
-
-
-def p():
-    print("data received")
 
 
 def run():
@@ -28,25 +24,21 @@ def run():
     client = discord.Client(intents=intents)
     _bot = commands.Bot(command_prefix=config.prefix, client=client, intents=client.intents)
 
-    sclient = PendingConnection()
-    sclient.socket.connectToHost(QHostAddress('127.0.0.1'), 8082)
+    client_connection = ClientConnection()
+    client_connection.connect_to_host(port=8082)
 
-    if not sclient.socket.waitForConnected(1000):
-        raise Exception('failed to connect')
-
-    sclient.socket.readyRead.connect(p)
     msg = QByteArray()
     msg.append("Hello")
 
-    if not sclient.send(command=Protocol.Bot.hello.value, data=msg):
+    if not client_connection.send(command=Protocol.Bot.hello.value, data=msg):
         print("failed to send data")
 
-    # server = Server(QHostAddress('127.0.0.1'), 8083)
-    # server.listen()
+    if not client_connection.socket.waitForReadyRead():
+        print("wait to ready read")
 
     @_bot.event
     async def on_ready():
-        print('started')
+        print('bot started')
 
     @_bot.command("mixes")
     async def mixes(ctx):
@@ -59,7 +51,7 @@ def run():
         await asyncio.sleep(1)
         await ctx.author.send("hi this is your channel id: " + str(ctx.author.id))
 
-    _bot.run(config.token)
+    #_bot.run(config.token)
 
 
 if __name__ == '__main__':

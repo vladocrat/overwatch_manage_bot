@@ -71,12 +71,12 @@ class Connection(QObject):
 class ClientConnection(Connection):
     def __init__(self):
         super().__init__()
-        self.socket.readyRead.connect(self.handle_data)
+        self.socket.readyRead.connect(self.__handle_data)
         self.socket.errorOccurred.connect(lambda: print(self.socket.errorString()))
         self.socket.connected.connect(lambda: print("connected to socket"))
         self.socket.disconnected.connect(self.__on_disconnected)
 
-    def handle_data(self):
+    def __handle_data(self):
         msg = self.__read_message()
         print('message command: ' + str(msg.command))
 

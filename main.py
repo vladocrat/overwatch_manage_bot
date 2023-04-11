@@ -1,31 +1,29 @@
 import asyncio
-import encodings
 
 import discord
-import json
 
-from PyQt5.QtCore import QByteArray, QDataStream
-from PyQt5.QtNetwork import QHostAddress, QAbstractSocket
+from PyQt5.QtCore import QByteArray
 
 from protocol import Protocol
 from server import ClientConnection
 from discord.ext import commands
-from configure import Configurer
+from configure import Configurer, Config
 from views import MixesView
 
 
 def run():
     configurer = Configurer("settings.ini")
-    config = configurer.configure()
+    bot_config = configurer.configure(Config.Bot)
+    network_config = configurer.configure(Config.Network)
 
     intents = discord.Intents.default()
     intents.message_content = True
 
     client = discord.Client(intents=intents)
-    _bot = commands.Bot(command_prefix=config.prefix, client=client, intents=client.intents)
+    _bot = commands.Bot(command_prefix=bot_config.prefix, client=client, intents=client.intents)
 
     client_connection = ClientConnection()
-    client_connection.connect_to_host(port=8082)
+    client_connection.connect_to_host(port=network_config.port)
 
     msg = QByteArray()
     msg.append("Hello")
@@ -51,7 +49,7 @@ def run():
         await asyncio.sleep(1)
         await ctx.author.send("hi this is your channel id: " + str(ctx.author.id))
 
-    #_bot.run(config.token)
+    #_bot.run(bot_config.token)
 
 
 if __name__ == '__main__':
